@@ -101,6 +101,8 @@ Use `/mcp` in Vibe to confirm the tools are loaded. Without MCP, install and log
 | `gitlab-pipelines-run` | skill | `skills/gitlab-pipelines-run/` | Launch GitLab pipelines on repos/branches with variables. Usage: `/gitlab-pipelines-run <runs.md>` |
 | `tech-design` | skill | `skills/tech-design/` | Technical design document with multi-component impact. Usage: `/tech-design <components.md>` |
 | `component-analyst` | agent (subagent) | `agents/component-analyst.toml`, `prompts/component-analyst.md` | Read-only impact analysis of one component, used by `tech-design` |
+| `java-migration` | skill | `skills/java-migration/` | Java 25 migration with OpenRewrite and draft MRs. Usage: `/java-migration <repos.md> <work-dir>` |
+| `java-migrator` | agent (subagent) | `agents/java-migrator.toml`, `prompts/java-migrator.md` | Migrates one Maven repo in a clone, commits on the migration branch only, never pushes |
 
 ## Spring Boot MR review: install and usage
 
@@ -194,3 +196,26 @@ Usage: `/tech-design components.md`, where `components.md` lists each component 
 
 Limits: the analysis comes from reading the code only. Runtime behavior, production data and consumers outside the listed
 components are not covered; such points appear as `to-confirm` or open questions and must be checked by people.
+
+## Java 25 migration (OpenRewrite)
+
+Skill `java-migration` + subagent `java-migrator` (explicit invocation only). Install together: `skills/java-migration/`,
+`agents/java-migrator.toml`, `prompts/java-migrator.md`. Needs JDK 25, Maven, git, Node.js and the GitLab MCP.
+
+Usage: `/java-migration repos.md C:\work\migrations` (list of GitLab repos, and the folder where they are cloned).
+
+1. The list becomes `java-migration-plan.json` (`plan.schema.json`), validated by a script.
+2. For each repo, the `java-migrator` subagent clones it, creates the migration branch (`chore/java-25-migration`) **from `origin/develop`**,
+   applies the OpenRewrite recipe, builds, runs the tests and commits **on the migration branch only**. It never pushes.
+   It returns a JSON result (`result.schema.json`): status, recipe and versions used, build and tests, list of issues.
+3. `cli.mjs guard` checks every clone before any push: HEAD on the migration branch, based on `origin/develop`, clean tree,
+   no local commit on develop, main or master. A clone that fails is not pushed.
+4. Vibe shows the recap and asks for confirmation. Nothing is pushed or created without a yes.
+5. After confirmation, Vibe pushes the migration branch only (no force) and creates a **draft MR** targeting `develop`.
+   When the build or tests fail, the MR is still created as a draft and its description lists the problems to fix.
+   A repo with no change or a failed migration gets no MR. An error on one repo does not stop the others.
+6. Report: `java-migration-report.md` (repo, migration status, MR link, number of issues, error).
+
+Notes: the recipe `UpgradeToJava25` is checked at run time (`rewrite:discover`) and its versions are recorded in the MR description;
+if it does not exist in the available `rewrite-migrate-java` version, the repo is reported as failed. The subagent's bash cannot ask
+for permission (no user interaction), so the git rules are enforced by its prompt and by the guard script, not by a permission prompt.

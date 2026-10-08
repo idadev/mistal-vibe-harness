@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "java-migration plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_file", "work_dir", "base_branch", "migration_branch", "repos"],
+  "properties": {
+    "source_file": { "type": "string" },
+    "work_dir": { "type": "string", "description": "Absolute path of the folder where repos are cloned" },
+    "base_branch": { "enum": ["develop"], "description": "Migration branches are always created from develop" },
+    "migration_branch": { "type": "string", "description": "e.g. chore/java-25-migration" },
+    "repos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "clone_url"],
+        "properties": {
+          "repo": { "type": "string", "description": "group/project path" },
+          "clone_url": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+# Migrates ONE Maven repo to Java 25 with OpenRewrite, inside a dedicated clone. Delegated by /java-migration through the `task` tool.
+# Writes in the clone and commits on the migration branch only; never pushes. Returns JSON following skills/java-migration/result.schema.json.
+agent_type = "subagent"
+system_prompt_id = "java-migrator"
+
+# A subagent runs without user interaction, so bash cannot ask: the git rules are in the prompt,
+# and the skill runs `cli.mjs guard` on every clone before any push.
+[tools.bash]
+permission = "always"

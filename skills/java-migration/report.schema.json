@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "java-migration MR results",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["generated", "results"],
+  "properties": {
+    "generated": { "type": "string", "description": "ISO date YYYY-MM-DD" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "migration_status", "mr_status", "mr_url", "issues_count", "error"],
+        "properties": {
+          "repo": { "type": "string" },
+          "migration_status": { "enum": ["migrated", "migrated-with-issues", "no-changes", "failed"] },
+          "mr_status": { "enum": ["created", "failed", "skipped", "not-needed"], "description": "not-needed = no-changes or failed migration (nothing to push)" },
+          "mr_url": { "type": ["string", "null"] },
+          "issues_count": { "type": "integer" },
+          "error": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

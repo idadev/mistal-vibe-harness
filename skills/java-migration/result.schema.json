@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "java-migrator result for one repo",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["repo", "local_dir", "status", "recipe", "rewrite_plugin_version", "recipe_artifact_version", "commit_sha", "files_changed", "java_version_after", "build", "issues"],
+  "definitions": {
+    "step": { "enum": ["pass", "fail", "not-run"] }
+  },
+  "properties": {
+    "repo": { "type": "string" },
+    "local_dir": { "type": "string" },
+    "status": { "enum": ["migrated", "migrated-with-issues", "no-changes", "failed"], "description": "migrated = changes committed and build+tests pass; migrated-with-issues = changes committed but build or tests fail; no-changes = recipe changed nothing; failed = nothing committed (clone, branch or recipe error)" },
+    "recipe": { "type": ["string", "null"], "description": "Recipe actually applied" },
+    "rewrite_plugin_version": { "type": ["string", "null"] },
+    "recipe_artifact_version": { "type": ["string", "null"], "description": "rewrite-migrate-java version" },
+    "commit_sha": { "type": ["string", "null"] },
+    "files_changed": { "type": "integer" },
+    "java_version_after": { "type": ["string", "null"] },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compile", "tests", "summary"],
+      "properties": {
+        "compile": { "$ref": "#/definitions/step" },
+        "tests": { "$ref": "#/definitions/step" },
+        "summary": { "type": "string", "description": "One or two sentences" }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "description", "file"],
+        "properties": {
+          "kind": { "enum": ["compile", "test", "recipe", "dependency", "git", "other"] },
+          "description": { "type": "string" },
+          "file": { "type": ["string", "null"], "description": "path:line when known" }
+        }
+      }
+    }
+  }
+}
