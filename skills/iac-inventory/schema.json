@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "iac-inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["generated", "source_file", "env", "components"],
+  "definitions": {
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request", "limit"],
+      "properties": {
+        "request": { "type": ["string", "null"], "description": "e.g. \"250m\", \"512Mi\". null = not found" },
+        "limit": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "properties": {
+    "generated": { "type": "string", "description": "ISO date YYYY-MM-DD" },
+    "source_file": { "type": "string" },
+    "env": { "type": "string", "description": "e.g. prod" },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["component", "repo", "status", "cpu", "memory", "replicas", "keda", "source", "notes"],
+        "properties": {
+          "component": { "type": "string" },
+          "repo": { "type": "string" },
+          "status": { "enum": ["ok", "non-helm", "inaccessible"] },
+          "cpu": { "$ref": "#/definitions/pair" },
+          "memory": { "$ref": "#/definitions/pair" },
+          "replicas": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["fixed", "min", "max"],
+            "properties": {
+              "fixed": { "type": ["integer", "null"] },
+              "min": { "type": ["integer", "null"] },
+              "max": { "type": ["integer", "null"] }
+            }
+          },
+          "keda": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["enabled", "min", "max", "triggers"],
+            "properties": {
+              "enabled": { "type": ["boolean", "null"], "description": "null = not found" },
+              "min": { "type": ["integer", "null"] },
+              "max": { "type": ["integer", "null"] },
+              "triggers": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "source": { "type": "array", "items": { "type": "string" }, "description": "Files used, e.g. values-prod.yaml" },
+          "notes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

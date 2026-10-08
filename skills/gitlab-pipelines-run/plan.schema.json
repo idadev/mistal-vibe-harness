@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "gitlab-pipelines-run plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_file", "common_variables", "runs"],
+  "definitions": {
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "value"],
+        "properties": {
+          "key": { "type": "string", "description": "Variable name, e.g. DEPLOY_ENV" },
+          "value": { "type": "string" }
+        }
+      }
+    }
+  },
+  "properties": {
+    "source_file": { "type": "string", "description": "Input .md file name" },
+    "common_variables": { "$ref": "#/definitions/variables" },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "branch", "variables"],
+        "properties": {
+          "repo": { "type": "string", "description": "group/project path" },
+          "branch": { "type": "string" },
+          "variables": { "$ref": "#/definitions/variables", "description": "Per-repo variables; override common ones with the same key" }
+        }
+      }
+    }
+  }
+}

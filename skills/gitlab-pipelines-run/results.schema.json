@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "gitlab-pipelines-run results",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["generated", "results"],
+  "properties": {
+    "generated": { "type": "string", "description": "ISO date YYYY-MM-DD" },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "branch", "status", "pipeline_id", "url", "error"],
+        "properties": {
+          "repo": { "type": "string" },
+          "branch": { "type": "string" },
+          "status": { "enum": ["created", "failed", "skipped"], "description": "created = pipeline launched; failed = launch error; skipped = not launched (e.g. unknown repo/branch)" },
+          "pipeline_id": { "type": ["integer", "null"] },
+          "url": { "type": ["string", "null"] },
+          "error": { "type": ["string", "null"], "description": "Reason when failed/skipped, null otherwise" }
+        }
+      }
+    }
+  }
+}
