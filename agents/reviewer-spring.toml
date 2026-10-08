@@ -1,0 +1,8 @@
+# Read-only Spring Boot reviewer. Delegated via the `task` tool (e.g. by /gitlab-mr-review)
+# or run directly: vibe --agent reviewer-spring
+agent_type = "subagent"
+system_prompt_id = "reviewer-spring"
+disabled_tools = ["write_file", "search_replace"]
+
+[tools.bash]
+permission = "ask"

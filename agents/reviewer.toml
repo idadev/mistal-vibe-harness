@@ -1,0 +1,7 @@
+# Read-only reviewer, usable as a subagent via the `task` tool or `vibe --agent reviewer`.
+agent_type = "subagent"
+system_prompt_id = "reviewer"
+disabled_tools = ["write_file", "search_replace"]
+
+[tools.bash]
+permission = "ask"
