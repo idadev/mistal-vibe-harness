@@ -103,6 +103,8 @@ Use `/mcp` in Vibe to confirm the tools are loaded. Without MCP, install and log
 | `component-analyst` | agent (subagent) | `agents/component-analyst.toml`, `prompts/component-analyst.md` | Read-only impact analysis of one component, used by `tech-design` |
 | `java-migration` | skill | `skills/java-migration/` | Java 25 migration with OpenRewrite and draft MRs. Usage: `/java-migration <repos.md> <work-dir>` |
 | `java-migrator` | agent (subagent) | `agents/java-migrator.toml`, `prompts/java-migrator.md` | Migrates one Maven repo in a clone, commits on the migration branch only, never pushes |
+| `spring-boot-migration` | skill | `skills/spring-boot-migration/` | Spring Boot 4.x migration with OpenRewrite and draft MRs. Usage: `/spring-boot-migration <repos.md> <work-dir> <version>` |
+| `spring-boot-migrator` | agent (subagent) | `agents/spring-boot-migrator.toml`, `prompts/spring-boot-migrator.md` | Migrates one Spring Boot repo in a clone, commits on the migration branch only, never pushes |
 
 ## Spring Boot MR review: install and usage
 
@@ -219,3 +221,24 @@ Usage: `/java-migration repos.md C:\work\migrations` (list of GitLab repos, and 
 Notes: the recipe `UpgradeToJava25` is checked at run time (`rewrite:discover`) and its versions are recorded in the MR description;
 if it does not exist in the available `rewrite-migrate-java` version, the repo is reported as failed. The subagent's bash cannot ask
 for permission (no user interaction), so the git rules are enforced by its prompt and by the guard script, not by a permission prompt.
+
+## Spring Boot 4.x migration (OpenRewrite)
+
+Skill `spring-boot-migration` + subagent `spring-boot-migrator` (explicit invocation only). Install together:
+`skills/spring-boot-migration/`, `agents/spring-boot-migrator.toml`, `prompts/spring-boot-migrator.md`.
+Needs JDK 25, Maven, git, Node.js and the GitLab MCP.
+
+Usage: `/spring-boot-migration repos.md C:\work\migrations 4.0.0` (list of GitLab repos, clone folder, **target Spring Boot version**;
+the skill asks for whichever is missing and never picks a version itself).
+
+It follows the same flow and the same safeguards as the Java 25 migration (branch `chore/spring-boot-4-migration` created from
+`origin/develop`, commits on that branch only, `guard` check before any push, confirmation before push and MRs, draft MRs targeting `develop`,
+errors on one repo do not stop the others, JSON schemas for plan, results and report). The two migrations are independent: each starts from
+`develop` and has its own branch and MR.
+
+Differences:
+- The recipe is not hard-coded: the subagent looks for the upgrade recipe matching the target version in `rewrite-spring` (`rewrite:discover`)
+  and fails the repo if none exists.
+- The Java 25 migration is assumed to be already done and merged into `develop`: the build uses JDK 25 and the skill does not upgrade Java. If a repo is clearly not on Java 25, it is flagged as an issue.
+- Expect many `migrated-with-issues`: Spring Boot 4 brings Spring Framework 7, Jakarta EE 11 and Jackson changes that recipes do not fully cover.
+  Compile, test, config (renamed properties) and API problems are listed in the draft MR description.
