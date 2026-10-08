@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "tech-design document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "date", "context", "need", "constraints", "assumptions", "options", "recommendation", "cross_cutting", "to_validate", "synthesis"],
+  "properties": {
+    "title": { "type": "string" },
+    "date": { "type": "string", "description": "ISO date YYYY-MM-DD" },
+    "context": { "type": "string", "description": "Current situation and why this is needed" },
+    "need": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["problem", "goals", "non_goals"],
+      "properties": {
+        "problem": { "type": "string" },
+        "goals": { "type": "array", "items": { "type": "string" } },
+        "non_goals": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "description", "pros", "cons", "effort", "risks"],
+        "properties": {
+          "id": { "type": "string", "description": "opt-1, opt-2..." },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "pros": { "type": "array", "items": { "type": "string" } },
+          "cons": { "type": "array", "items": { "type": "string" } },
+          "effort": { "enum": ["S", "M", "L", "XL", null] },
+          "risks": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["option_id", "rationale"],
+      "properties": {
+        "option_id": { "type": "string" },
+        "rationale": { "type": "string" }
+      }
+    },
+    "cross_cutting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deployment_order", "backward_compatibility", "risks"],
+      "properties": {
+        "deployment_order": { "type": "array", "items": { "type": "string" }, "description": "Ordered steps across components" },
+        "backward_compatibility": { "type": "array", "items": { "type": "string" } },
+        "risks": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "to_validate": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["question", "owner", "blocking"],
+        "properties": {
+          "question": { "type": "string" },
+          "owner": { "type": ["string", "null"], "description": "Who should answer, null if unknown" },
+          "blocking": { "type": "boolean" }
+        }
+      }
+    },
+    "synthesis": { "type": "string", "description": "Short conclusion: recommended option, main impacts, next steps" }
+  }
+}

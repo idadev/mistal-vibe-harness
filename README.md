@@ -99,6 +99,8 @@ Use `/mcp` in Vibe to confirm the tools are loaded. Without MCP, install and log
 | `src-inventory` | skill | `skills/src-inventory/` | Table of Java / Spring Boot versions from a list of GitLab repos. Usage: `/src-inventory <repos.md>` |
 | `iac-inventory` | skill | `skills/iac-inventory/` | CPU, memory, replicas and KEDA per component from Helm IaC repos. Usage: `/iac-inventory <repos.md> [env]` |
 | `gitlab-pipelines-run` | skill | `skills/gitlab-pipelines-run/` | Launch GitLab pipelines on repos/branches with variables. Usage: `/gitlab-pipelines-run <runs.md>` |
+| `tech-design` | skill | `skills/tech-design/` | Technical design document with multi-component impact. Usage: `/tech-design <components.md>` |
+| `component-analyst` | agent (subagent) | `agents/component-analyst.toml`, `prompts/component-analyst.md` | Read-only impact analysis of one component, used by `tech-design` |
 
 ## Spring Boot MR review: install and usage
 
@@ -171,3 +173,24 @@ Usage: `/gitlab-pipelines-run runs.md`, where `runs.md` lists each repo with its
 5. It writes `pipelines-results.json` (constrained by `results.schema.json`) and `pipelines-report.md` (repo, branch, status, pipeline ID and link, error).
 
 Note: `pipelines-plan.resolved.json` contains the variable values in clear text, including secrets. Delete it after the run and do not commit it.
+
+## Technical design with multi-component impact
+
+Skill `tech-design` + subagent `component-analyst` (explicit invocation only). Install together:
+`skills/tech-design/`, `agents/component-analyst.toml`, `prompts/component-analyst.md`. Needs Node.js.
+
+Usage: `/tech-design components.md`, where `components.md` lists each component with its name, a short description and the
+**local path** of its code. Describe the feature or need in the conversation.
+
+1. Vibe restates the need (problem, goals, non-goals, constraints, assumptions) and asks you to confirm it.
+2. Vibe proposes 2-4 solution options with pros, cons, effort and risks, and asks which ones to analyze in depth
+   (one sub-agent run per component and per option).
+3. For each component and option, the read-only `component-analyst` subagent explores the code in its own context and returns
+   a JSON impact (impacted yes / no / to-confirm, changes with verified `path:line`, dependencies, risks, open questions),
+   validated against `impact.schema.json` and saved in `tech-design/impacts/`.
+4. Vibe writes `tech-design/design.json` (`design.schema.json`): recommendation, cross-cutting concerns (deployment order, compatibility), points to validate, synthesis.
+5. `scripts/cli.mjs render` validates everything and generates `tech-design.md`: context, need, constraints, options and comparison,
+   recommendation, impact per component and option, cross-cutting concerns, to validate, synthesis.
+
+Limits: the analysis comes from reading the code only. Runtime behavior, production data and consumers outside the listed
+components are not covered; such points appear as `to-confirm` or open questions and must be checked by people.

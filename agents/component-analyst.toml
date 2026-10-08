@@ -1,0 +1,8 @@
+# Read-only analyst for ONE component. Delegated by /tech-design through the `task` tool, one call per component and option.
+# Returns a JSON object following skills/tech-design/impact.schema.json.
+agent_type = "subagent"
+system_prompt_id = "component-analyst"
+disabled_tools = ["write_file", "search_replace"]
+
+[tools.bash]
+permission = "ask"

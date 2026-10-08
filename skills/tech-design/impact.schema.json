@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "tech-design component impact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["component", "option_id", "impacted", "summary", "effort", "changes", "dependencies", "risks", "open_questions", "files_read"],
+  "properties": {
+    "component": { "type": "string", "description": "Component name as in the input list" },
+    "option_id": { "type": "string", "description": "Id of the solution option analyzed, e.g. opt-1" },
+    "impacted": { "enum": ["yes", "no", "to-confirm"], "description": "to-confirm when the code does not allow a firm answer" },
+    "summary": { "type": "string", "description": "1-3 sentences" },
+    "effort": { "enum": ["S", "M", "L", "XL", null], "description": "Overall effort for this component, null if not impacted or unknown" },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["area", "description", "files"],
+        "properties": {
+          "area": { "enum": ["api", "data", "config", "infra", "messaging", "security", "tests", "other"] },
+          "description": { "type": "string" },
+          "files": { "type": "array", "items": { "type": "string" }, "description": "path:line, relative to the component, verified in the code" }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["component", "kind", "description"],
+        "properties": {
+          "component": { "type": "string", "description": "Other component or external system" },
+          "kind": { "enum": ["calls", "called-by", "publishes-to", "consumes-from", "shares-data"] },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "open_questions": { "type": "array", "items": { "type": "string" } },
+    "files_read": { "type": "array", "items": { "type": "string" }, "description": "Main files actually read, as evidence" }
+  }
+}
