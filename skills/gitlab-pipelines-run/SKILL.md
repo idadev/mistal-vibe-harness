@@ -1,39 +1,39 @@
 ---
 name: gitlab-pipelines-run
-description: Launch GitLab pipelines on a list of repos, one branch per repo, with variables (common and per-repo), using the GitLab MCP. Only launches, does not wait for results. Usage - /gitlab-pipelines-run <runs.md>.
+description: Lance des pipelines GitLab sur une liste de dépôts, une branche par dépôt, avec des variables (communes et par dépôt), via le GitLab MCP. Lance uniquement, n'attend pas les résultats. Usage - /gitlab-pipelines-run <runs.md>.
 user-invocable: true
 disable-model-invocation: true
 ---
 
-# Launch GitLab pipelines
+# Lancer des pipelines GitLab
 
-Input: a Markdown file listing, for each GitLab repo, the branch and the pipeline variables. It may also have a section of variables common to all repos. A repo's own variables override a common variable with the same name.
-This skill only launches pipelines. It does not wait for them nor report their final result.
+Entrée : un fichier Markdown listant, pour chaque dépôt GitLab, la branche et les variables de pipeline. Il peut aussi contenir une section de variables communes à tous les dépôts. Les variables propres à un dépôt prennent le dessus sur une variable commune du même nom.
+Ce skill lance uniquement des pipelines. Il ne les attend pas et n'en rapporte pas le résultat final.
 
-## 1. Build the plan (JSON)
-Output is constrained by `plan.schema.json` in this skill's folder. Read it first and follow it exactly.
-Write `pipelines-plan.json` in the current directory:
+## 1. Construire le plan (JSON)
+La sortie est contrainte par `plan.schema.json` dans le dossier de ce skill. Le lire d'abord et le suivre exactement.
+Écrire `pipelines-plan.json` dans le répertoire courant :
 `{ "source_file": "<input file>", "common_variables": [{ "key": "...", "value": "..." }], "runs": [{ "repo": "group/project", "branch": "...", "variables": [...] }] }`
-- One run per repo/branch line, in input order. `variables` holds only that repo's own variables (the merge with common ones is done by the script).
-- Copy names and values exactly as written. Never invent, complete or guess a value. If a repo has no branch or a needed value is unclear, ask the user before going on.
+- Une exécution (run) par ligne dépôt/branche, dans l'ordre de l'entrée. `variables` ne contient que les variables propres à ce dépôt (la fusion avec les variables communes est faite par le script).
+- Copier les noms et valeurs exactement comme écrits. Ne jamais inventer, compléter ou deviner une valeur. Si un dépôt n'a pas de branche ou si une valeur nécessaire n'est pas claire, demander à l'utilisateur avant de continuer.
 
-## 2. Check the plan
-Run `node <this skill folder>/scripts/cli.mjs check pipelines-plan.json`.
-It validates the plan (schema, duplicates, repo/variable name format), writes `pipelines-plan.resolved.json` (common and per-repo variables merged) and prints the recap with secret-looking variables masked (`token`, `secret`, `password`, `key`...). If it prints `Invalid JSON`, fix the plan and run it again.
+## 2. Vérifier le plan
+Exécuter `node <this skill folder>/scripts/cli.mjs check pipelines-plan.json`.
+Il valide le plan (schéma, doublons, format des noms de dépôts/variables), écrit `pipelines-plan.resolved.json` (variables communes et par dépôt fusionnées) et affiche le récapitulatif avec les variables à l'allure de secrets masquées (`token`, `secret`, `password`, `key`...). S'il affiche `Invalid JSON`, corriger le plan et le relancer.
 
-## 3. Verify repos and branches
-With the GitLab MCP tools, check each repo exists and the branch exists (get project / get branch). Mark those that do not as `skipped` with the reason; they will not be launched. If the MCP tools are not available in this session, stop and tell the user (do not fall back to guessing).
+## 3. Vérifier les dépôts et les branches
+Avec les outils GitLab MCP, vérifier que chaque dépôt existe et que la branche existe (get project / get branch). Marquer ceux qui n'existent pas comme `skipped` avec la raison ; ils ne seront pas lancés. Si les outils MCP ne sont pas disponibles dans cette session, s'arrêter et prévenir l'utilisateur (ne pas se rabattre sur des suppositions).
 
-## 4. Ask for confirmation
-Show the recap table (from step 2, secrets masked) and the repos that will be skipped. Ask: "Launch these N pipelines?" Launch nothing unless the user answers yes. If the user asks for a dry run, stop here.
+## 4. Demander confirmation
+Afficher le tableau récapitulatif (de l'étape 2, secrets masqués) et les dépôts qui seront ignorés. Demander : « Lancer ces N pipelines ? » Ne rien lancer sauf si l'utilisateur répond oui. Si l'utilisateur demande une simulation (dry run), s'arrêter ici.
 
-## 5. Launch
-For each run of `pipelines-plan.resolved.json` that is not skipped, in order, create a pipeline with the GitLab MCP create-pipeline tool: project = repo, ref = branch, variables = the run's variables. Pass the variables as tool parameters only.
-- On an error for one repo, record it as `failed` with the error message and **continue with the next repos**.
-- Do not retry, and do not re-launch a pipeline that was created.
-- Record the pipeline ID and URL of each created pipeline.
+## 5. Lancer
+Pour chaque exécution de `pipelines-plan.resolved.json` qui n'est pas ignorée, dans l'ordre, créer un pipeline avec l'outil GitLab MCP create-pipeline : project = dépôt, ref = branche, variables = les variables de l'exécution. Passer les variables uniquement comme paramètres de l'outil.
+- En cas d'erreur sur un dépôt, l'enregistrer comme `failed` avec le message d'erreur et **continuer avec les dépôts suivants**.
+- Ne pas réessayer, et ne pas relancer un pipeline déjà créé.
+- Enregistrer l'ID et l'URL de chaque pipeline créé.
 
-## 6. Report
-Write `pipelines-results.json` following `results.schema.json`: `{ "generated": "<YYYY-MM-DD>", "results": [{ "repo", "branch", "status": "created|failed|skipped", "pipeline_id", "url", "error" }] }`, one entry per run in input order (`null` for unknown fields, `error` null when created).
-Then run `node <this skill folder>/scripts/cli.mjs report pipelines-results.json pipelines-report.md` (fix and rerun on `Invalid JSON`; never write the report by hand).
-Tell the user how many were created, failed and skipped, and list the failures. Never print secret variable values. If Node.js is not available, say so and show the results JSON only.
+## 6. Rapport
+Écrire `pipelines-results.json` en suivant `results.schema.json` : `{ "generated": "<YYYY-MM-DD>", "results": [{ "repo", "branch", "status": "created|failed|skipped", "pipeline_id", "url", "error" }] }`, une entrée par exécution dans l'ordre de l'entrée (`null` pour les champs inconnus, `error` à null quand créé).
+Puis exécuter `node <this skill folder>/scripts/cli.mjs report pipelines-results.json pipelines-report.md` (corriger et relancer en cas de `Invalid JSON` ; ne jamais écrire le rapport à la main).
+Indiquer à l'utilisateur combien ont été créés, ont échoué et ont été ignorés, et lister les échecs. Ne jamais afficher les valeurs des variables secrètes. Si Node.js n'est pas disponible, le dire et afficher uniquement le JSON des résultats.

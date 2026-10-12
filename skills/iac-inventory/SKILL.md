@@ -1,46 +1,46 @@
 ---
 name: iac-inventory
-description: Build iac-inventory.md, a table of CPU, memory, replicas and KEDA settings per component from a list of Helm IaC GitLab repos (prod by default). Usage - /iac-inventory <repos.md> [env].
+description: Construit iac-inventory.md, un tableau des paramètres CPU, mémoire, réplicas et KEDA par composant à partir d'une liste de dépôts GitLab d'IaC Helm (prod par défaut). Usage - /iac-inventory <repos.md> [env].
 user-invocable: true
 disable-model-invocation: true
 ---
 
-# Kubernetes IaC (Helm) inventory
+# Inventaire IaC Kubernetes (Helm)
 
-Input: a Markdown file listing GitLab repositories containing Helm IaC, and an optional environment name (default `prod`).
-Output: `iac-inventory.md` in the current directory (tell the user before overwriting an existing one).
+Entrée : un fichier Markdown listant des dépôts GitLab contenant de l'IaC Helm, et un nom d'environnement optionnel (`prod` par défaut).
+Sortie : `iac-inventory.md` dans le répertoire courant (prévenir l'utilisateur avant d'écraser un fichier existant).
 
-## 1. Read the repo list
-Extract every GitLab repository from the input file, whatever its form: Markdown links, bare URLs, table rows, `group/project` paths. Ignore anything that is not a repository. Show the number of repos found.
+## 1. Lire la liste des dépôts
+Extraire chaque dépôt GitLab du fichier d'entrée, quelle que soit sa forme : liens Markdown, URL nues, lignes de tableau, chemins `group/project`. Ignorer tout ce qui n'est pas un dépôt. Indiquer le nombre de dépôts trouvés.
 
-## 2. Locate the Helm files, never clone
-For each repo, on its default branch, list the tree (GitLab MCP tools if available, otherwise `glab api "projects/<encoded-path>/repository/tree?recursive=true&per_page=100"`) and find:
-- `Chart.yaml` (one per chart; a repo may hold several components/charts)
-- `values.yaml` of each chart
-- environment values files matching the target env: `values-<env>.yaml`, `values.<env>.yaml`, `<env>/values.yaml`, `env/<env>.yaml`, `environments/<env>/...`
-Read only these files. Not Helm (no `Chart.yaml`): one row with `-` and the note "non-Helm".
+## 2. Localiser les fichiers Helm, ne jamais cloner
+Pour chaque dépôt, sur sa branche par défaut, lister l'arborescence (outils GitLab MCP si disponibles, sinon `glab api "projects/<encoded-path>/repository/tree?recursive=true&per_page=100"`) et trouver :
+- `Chart.yaml` (un par chart ; un dépôt peut contenir plusieurs composants/charts)
+- `values.yaml` de chaque chart
+- les fichiers de values d'environnement correspondant à l'env cible : `values-<env>.yaml`, `values.<env>.yaml`, `<env>/values.yaml`, `env/<env>.yaml`, `environments/<env>/...`
+Lire uniquement ces fichiers. Pas Helm (pas de `Chart.yaml`) : une ligne avec `-` et la note "non-Helm".
 
-## 3. One row per component
-A component is one deployed workload: usually one chart, or one entry of a multi-workload chart (e.g. several deployments in the values). Use the chart `name` (or workload key) as the component name.
+## 3. Une ligne par composant
+Un composant est une charge de travail déployée : généralement un chart, ou une entrée d'un chart multi-workloads (par ex. plusieurs deployments dans les values). Utiliser le `name` du chart (ou la clé du workload) comme nom du composant.
 
-## 4. Extract the values
-Effective value = env values file, falling back to the chart's `values.yaml`. Mark which one applied.
-- **CPU / memory**: `resources.requests.cpu|memory` and `resources.limits.cpu|memory`, shown as `req / limit` (e.g. `250m / 1`, `512Mi / 1Gi`).
-- **Replicas**: `replicaCount` / `replicas`. If an HPA or KEDA scaling is enabled, replicas is the min-max range instead (and the fixed value is noted).
-- **KEDA**: whether enabled (`keda.enabled`, a `ScaledObject` template switched on by values), `minReplicaCount`, `maxReplicaCount`, and the trigger types (`cpu`, `memory`, `kafka`, `cron`, `prometheus`...). Show as `on 2-10 [cpu, kafka]`, or `off`.
-Values key names vary between charts: read the chart's templates (`templates/*.yaml`) when a key is unclear, to see which values feed `resources`, `replicas` and the `ScaledObject`.
-Do not render the chart (`helm template`) and do not guess: unknown value -> `null`. If the env file is missing, use the chart defaults and say so in Notes.
+## 4. Extraire les valeurs
+Valeur effective = fichier de values de l'env, avec repli sur le `values.yaml` du chart. Indiquer lequel s'est appliqué.
+- **CPU / mémoire** : `resources.requests.cpu|memory` et `resources.limits.cpu|memory`, affichés `req / limit` (par ex. `250m / 1`, `512Mi / 1Gi`).
+- **Réplicas** : `replicaCount` / `replicas`. Si un HPA ou un scaling KEDA est activé, les réplicas sont la plage min-max à la place (et la valeur fixe est notée).
+- **KEDA** : s'il est activé (`keda.enabled`, un template `ScaledObject` activé par les values), `minReplicaCount`, `maxReplicaCount`, et les types de triggers (`cpu`, `memory`, `kafka`, `cron`, `prometheus`...). Afficher sous la forme `on 2-10 [cpu, kafka]`, ou `off`.
+Les noms de clés des values varient selon les charts : lire les templates du chart (`templates/*.yaml`) quand une clé n'est pas claire, pour voir quelles values alimentent `resources`, `replicas` et le `ScaledObject`.
+Ne pas rendre le chart (`helm template`) et ne pas deviner : valeur inconnue -> `null`. Si le fichier d'env est absent, utiliser les valeurs par défaut du chart et l'indiquer dans les Notes.
 
-## 5. Produce the JSON, then render iac-inventory.md
-Output is constrained by `schema.json` in this skill's folder. Read it first and follow it exactly: same property names, no extra, none missing.
-1. Write `iac-inventory.json` in the current directory: `{ "generated": "<YYYY-MM-DD>", "source_file": "<input file>", "env": "<env>", "components": [ ... ] }`, one object per component, in input order.
-   - `status`: `ok`, `non-helm` (no `Chart.yaml`) or `inaccessible`. For non-ok, set every value to `null`/empty (`keda.enabled` null, `triggers` []).
-   - `cpu` / `memory`: `{ "request": "250m", "limit": "1" }` as strings exactly as written in the values, `null` if not found.
-   - `replicas`: `fixed` for a plain replica count; `min`/`max` when HPA or KEDA scaling is on. Unused fields `null`.
-   - `keda`: `enabled` true/false (`null` if it cannot be determined), `min`, `max`, `triggers` (types such as `cpu`, `kafka`).
-   - `source`: files used (e.g. `values-prod.yaml`, `values.yaml`). `notes`: short strings (env file missing so defaults used, templated value `{{ ... }}` kept as-is, multi-workload chart...).
-2. Run `node <this skill folder>/scripts/render.mjs iac-inventory.json iac-inventory.md`. It validates the JSON against the schema and writes the Markdown table (`null` shown as `?`, non-ok components as `-`).
-3. If it prints `Invalid JSON`, fix the listed errors and run it again. Never write `iac-inventory.md` by hand. If Node.js is not available, say so and show the JSON only.
+## 5. Produire le JSON, puis générer iac-inventory.md
+La sortie est contrainte par `schema.json` dans le dossier de ce skill. Le lire d'abord et le suivre exactement : mêmes noms de propriétés, aucune en trop, aucune manquante.
+1. Écrire `iac-inventory.json` dans le répertoire courant : `{ "generated": "<YYYY-MM-DD>", "source_file": "<input file>", "env": "<env>", "components": [ ... ] }`, un objet par composant, dans l'ordre de l'entrée.
+   - `status` : `ok`, `non-helm` (pas de `Chart.yaml`) ou `inaccessible`. Pour un statut non ok, mettre toutes les valeurs à `null`/vide (`keda.enabled` null, `triggers` []).
+   - `cpu` / `memory` : `{ "request": "250m", "limit": "1" }` en chaînes exactement comme écrites dans les values, `null` si introuvable.
+   - `replicas` : `fixed` pour un nombre de réplicas simple ; `min`/`max` quand le scaling HPA ou KEDA est activé. Champs inutilisés à `null`.
+   - `keda` : `enabled` true/false (`null` s'il ne peut pas être déterminé), `min`, `max`, `triggers` (types tels que `cpu`, `kafka`).
+   - `source` : fichiers utilisés (par ex. `values-prod.yaml`, `values.yaml`). `notes` : courtes chaînes (fichier d'env absent donc valeurs par défaut utilisées, valeur templatée `{{ ... }}` conservée telle quelle, chart multi-workloads...).
+2. Exécuter `node <this skill folder>/scripts/render.mjs iac-inventory.json iac-inventory.md`. Il valide le JSON par rapport au schéma et écrit le tableau Markdown (`null` affiché `?`, composants non ok affichés `-`).
+3. S'il affiche `Invalid JSON`, corriger les erreurs listées et le relancer. Ne jamais écrire `iac-inventory.md` à la main. Si Node.js n'est pas disponible, le dire et afficher uniquement le JSON.
 
-## 6. Report
-Tell the user the number of repos and components processed, how many values are `null`, and the repos that could not be read. Mention both `iac-inventory.json` and `iac-inventory.md`. For more than about 20 repos, work in batches of 10 and keep only the extracted values in context.
+## 6. Rapport
+Indiquer à l'utilisateur le nombre de dépôts et de composants traités, combien de valeurs sont `null`, et les dépôts qui n'ont pas pu être lus. Mentionner `iac-inventory.json` et `iac-inventory.md`. Au-delà d'environ 20 dépôts, travailler par lots de 10 et ne garder en contexte que les valeurs extraites.

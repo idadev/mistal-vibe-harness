@@ -1,40 +1,40 @@
 ---
 name: spring-boot-review-rules
-description: Review checklist for Spring Boot code (transactions, injection, JPA, security, validation, errors, tests). Load when reviewing Spring Boot changes.
+description: Checklist de revue pour le code Spring Boot (transactions, injection, JPA, sécurité, validation, erreurs, tests). À charger lors de la revue de changements Spring Boot.
 user-invocable: false
 ---
 
-# Spring Boot review checklist
+# Checklist de revue Spring Boot
 
-Check each point only against the changed code and what it touches.
+Vérifier chaque point uniquement par rapport au code modifié et à ce qu'il touche.
 
-**Architecture and injection**
-- Constructor injection, no field `@Autowired`. No business logic in controllers; no repository access from controllers.
-- Beans are stateless (no mutable fields in singletons). No circular dependencies.
+**Architecture et injection**
+- Injection par constructeur, pas de `@Autowired` sur les champs. Pas de logique métier dans les contrôleurs ; pas d'accès aux repositories depuis les contrôleurs.
+- Les beans sont sans état (pas de champs mutables dans les singletons). Pas de dépendances circulaires.
 
 **Transactions**
-- `@Transactional` on the service layer, not controllers. Self-invocation and `private`/`final` methods bypass the proxy.
-- Rollback rules: checked exceptions do not roll back by default. `readOnly = true` for pure reads.
-- No remote calls (HTTP, messaging) inside a long transaction.
+- `@Transactional` sur la couche service, pas sur les contrôleurs. L'auto-invocation et les méthodes `private`/`final` contournent le proxy.
+- Règles de rollback : les exceptions vérifiées ne déclenchent pas de rollback par défaut. `readOnly = true` pour les lectures pures.
+- Pas d'appels distants (HTTP, messagerie) dans une longue transaction.
 
-**JPA / data**
-- N+1 queries (lazy associations in loops, missing `JOIN FETCH` / entity graph). Unbounded `findAll`, missing pagination.
-- Entities not exposed directly in API responses. `equals`/`hashCode`/`toString` safe on entities (no lazy traversal).
-- Schema changes come with a migration (Flyway/Liquibase) that is backward compatible.
+**JPA / données**
+- Requêtes N+1 (associations lazy dans des boucles, `JOIN FETCH` / entity graph manquant). `findAll` non borné, pagination manquante.
+- Entités non exposées directement dans les réponses d'API. `equals`/`hashCode`/`toString` sûrs sur les entités (pas de parcours lazy).
+- Les changements de schéma s'accompagnent d'une migration (Flyway/Liquibase) rétrocompatible.
 
-**API and validation**
-- `@Valid` on request bodies, constraints on DTOs, correct HTTP status codes.
-- Centralized error handling (`@ControllerAdvice`), no stack traces or internal messages leaked.
+**API et validation**
+- `@Valid` sur les corps de requête, contraintes sur les DTO, codes de statut HTTP corrects.
+- Gestion d'erreurs centralisée (`@ControllerAdvice`), pas de stack traces ni de messages internes divulgués.
 
-**Security**
-- Endpoints covered by the security config, method security where needed. No secrets or credentials in code, config or logs.
-- Input used in queries is parameterized. No sensitive data in logs. CORS/CSRF changes are intentional.
+**Sécurité**
+- Endpoints couverts par la configuration de sécurité, sécurité au niveau méthode si nécessaire. Pas de secrets ni d'identifiants dans le code, la configuration ou les logs.
+- Les entrées utilisées dans les requêtes sont paramétrées. Pas de données sensibles dans les logs. Les changements CORS/CSRF sont intentionnels.
 
 **Configuration**
-- `@ConfigurationProperties` over scattered `@Value`. Profiles and defaults safe for production. New properties documented.
+- `@ConfigurationProperties` plutôt que des `@Value` dispersés. Profils et valeurs par défaut sûrs pour la production. Nouvelles propriétés documentées.
 
-**Concurrency and resources**
-- `@Async`/scheduled jobs: thread pool, error handling, idempotency. Resources closed, timeouts set on HTTP clients.
+**Concurrence et ressources**
+- `@Async`/jobs planifiés : pool de threads, gestion des erreurs, idempotence. Ressources fermées, timeouts définis sur les clients HTTP.
 
 **Tests**
-- New behavior has tests at the right level (`@WebMvcTest`, `@DataJpaTest`, slice tests over full `@SpringBootTest` when possible). Assertions are meaningful, no sleeps, no reliance on test order.
+- Le nouveau comportement a des tests au bon niveau (`@WebMvcTest`, `@DataJpaTest`, tests par tranche plutôt que `@SpringBootTest` complet quand c'est possible). Assertions pertinentes, pas de sleeps, pas de dépendance à l'ordre des tests.

@@ -1,33 +1,33 @@
 ---
 name: gitlab-mr-review
-description: Review a GitLab merge request of a Spring Boot project and optionally post the findings as MR comments. Usage - /gitlab-mr-review <MR number or URL>.
+description: Revoit une merge request GitLab d'un projet Spring Boot et publie éventuellement les constats comme commentaires de MR. Usage - /gitlab-mr-review <numéro ou URL de MR>.
 user-invocable: true
 disable-model-invocation: true
 ---
 
-# GitLab MR review
+# Revue de MR GitLab
 
-Input: an MR number or URL (if only a number is given, the project is the current repo's GitLab remote).
+Entrée : un numéro ou une URL de MR (si seul un numéro est donné, le projet est le remote GitLab du dépôt courant).
 
-## 1. Fetch the MR
-Prefer the GitLab MCP tools if they are available in this session (look for tools of the gitlab server: get merge request, get merge request diffs/changes, list discussions). Otherwise fall back to the CLI:
-- `glab mr view <id>` and `glab mr diff <id>`
-If neither works, say so and ask the user for the diff; do not guess.
+## 1. Récupérer la MR
+Privilégier les outils GitLab MCP s'ils sont disponibles dans cette session (chercher les outils du serveur gitlab : get merge request, get merge request diffs/changes, list discussions). Sinon, se rabattre sur la CLI :
+- `glab mr view <id>` et `glab mr diff <id>`
+Si aucun des deux ne fonctionne, le dire et demander le diff à l'utilisateur ; ne pas deviner.
 
-Collect: title, description, source/target branch, changed files with diffs, existing discussions (do not repeat comments already made).
+Collecter : titre, description, branches source/cible, fichiers modifiés avec leurs diffs, discussions existantes (ne pas répéter les commentaires déjà faits).
 
-## 2. Get the code locally
-If the working tree is not on the MR branch, do not switch branches without asking. Use `git fetch` and read files from the MR ref when you need more context than the diff.
+## 2. Obtenir le code en local
+Si l'arbre de travail n'est pas sur la branche de la MR, ne pas changer de branche sans demander. Utiliser `git fetch` et lire les fichiers depuis la ref de la MR quand il faut plus de contexte que le diff.
 
-## 3. Review
-Delegate to the `reviewer-spring` subagent with the `task` tool. Pass it the MR title, description, diff and the list of existing discussions. It returns findings as `[severity] path:LINE - problem - fix` plus a verdict.
+## 3. Revue
+Déléguer au sous-agent `reviewer-spring` avec l'outil `task`. Lui transmettre le titre de la MR, la description, le diff et la liste des discussions existantes. Il renvoie des constats sous la forme `[severity] path:LINE - problem - fix` plus un verdict.
 
-## 4. Report
-Show the user the findings grouped by severity and the verdict. Discard any finding you cannot tie to a changed line.
+## 4. Rapport
+Montrer à l'utilisateur les constats groupés par sévérité et le verdict. Écarter tout constat qu'on ne peut pas rattacher à une ligne modifiée.
 
-Then ask the user: "Do you want the review saved as a Markdown file?" If yes, write it (default path `reviews/mr-<id>-review.md` in the current project, unless the user gives another one) with: MR title and link, verdict, findings grouped by severity with `file:line`, problem and fix. Do not create the file without a yes.
+Demander ensuite à l'utilisateur : « Voulez-vous que la revue soit enregistrée dans un fichier Markdown ? » Si oui, l'écrire (chemin par défaut `reviews/mr-<id>-review.md` dans le projet courant, sauf si l'utilisateur en donne un autre) avec : titre et lien de la MR, verdict, constats groupés par sévérité avec `file:line`, problème et correctif. Ne pas créer le fichier sans un oui.
 
-## 5. Post
-Always ask the user: "Do you want me to post these comments on the MR?" Do nothing on GitLab unless the answer is yes. The question is asked here, by the main session: the `reviewer-spring` subagent cannot interact with the user and never posts.
+## 5. Publication
+Toujours demander à l'utilisateur : « Voulez-vous que je publie ces commentaires sur la MR ? » Ne rien faire sur GitLab sauf si la réponse est oui. La question est posée ici, par la session principale : le sous-agent `reviewer-spring` ne peut pas interagir avec l'utilisateur et ne publie jamais.
 
-If confirmed, post one inline discussion per finding on the matching diff line (MCP create-thread/discussion tool, or `glab mr note <id> -m "..."` for a general comment), then one summary comment with the verdict. Never approve or merge the MR.
+Si confirmé, publier une discussion en ligne par constat sur la ligne de diff correspondante (outil MCP create-thread/discussion, ou `glab mr note <id> -m "..."` pour un commentaire général), puis un commentaire de synthèse avec le verdict. Ne jamais approuver ni fusionner la MR.
