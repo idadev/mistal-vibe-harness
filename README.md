@@ -33,6 +33,35 @@ Les éléments existants portant le même nom sont écrasés ; les autres fichie
 Ensuite dans Vibe : `vibe --agent reviewer`, ou `/code-review`.
 Vibe ne charge les skills d'un projet que depuis des dossiers de confiance.
 
+## Templates `AGENTS.md`
+
+`templates/` contient des modèles de `AGENTS.md` à placer **à la racine du projet** (pas dans `.vibe/`). Le script compose le fichier
+à partir d'un socle commun et des types de composants demandés :
+
+```
+templates/AGENTS.base.md                    Socle : langue, Git, limites, définition de « terminé » (toujours inclus)
+templates/java-spring/AGENTS.spring-common.md   Java 25 / Spring Boot 4.x / Maven (inclus avec tout type ci-dessous sauf migration)
+templates/java-spring/AGENTS.api-spec.md    api-spec  : composant API pure, contrat OpenAPI (contract-first)
+templates/java-spring/AGENTS.api-impl.md    api-impl  : implémentation d'une API à partir du contrat généré
+templates/java-spring/AGENTS.kafka.md       kafka     : consumer / producer Kafka
+templates/java-spring/AGENTS.database.md    database  : DDL/DML (Flyway) + entités JPA
+templates/AGENTS.migration.md               migration : chantier de migration Java / Spring Boot (se combine avec un autre type)
+```
+
+```powershell
+scripts/install.ps1 -Target C:\dev\my-api -Agents api-impl
+scripts/install.ps1 -Target C:\dev\my-consumer -Agents kafka,migration -Force
+```
+```sh
+scripts/install.sh /path/to/my-api --agents api-impl
+scripts/install.sh /path/to/my-consumer --agents kafka,migration --force
+```
+
+`--agents` s'ajoute à l'installation de `.vibe/` ; il refuse d'écraser un `AGENTS.md` existant sans `--force` / `-Force`, et n'est pas disponible avec `--global`.
+Les templates partent d'hypothèses par défaut (Maven, contract-first avec openapi-generator, Flyway, messages Kafka JSON avec schéma versionné),
+rappelées en commentaire dans chaque section. Les marqueurs `<!-- À COMPLÉTER -->` indiquent ce qu'il faut renseigner par projet
+(nom du composant, version du contrat, topics, moteur de base de données, etc.).
+
 ## Installation manuelle
 
 Sans les scripts, copiez les dossiers vous-même. Vibe lit trois sous-dossiers d'un répertoire `.vibe` :
