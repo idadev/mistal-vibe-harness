@@ -2,7 +2,7 @@
 # Usage:
 #   scripts/install.sh <target-project> [--link] [--agents <types>] [--force]  -> <target-project>/.vibe/
 #   scripts/install.sh --global [--link]                                       -> ${VIBE_HOME:-~/.vibe}
-# --agents compose <target-project>/AGENTS.md from templates/ (types: api-spec,api-impl,kafka,database,migration).
+# --agents compose <target-project>/AGENTS.md from templates/ (types: api-spec,api-impl,kafka,database).
 # --force overwrites an existing AGENTS.md.
 set -eu
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
@@ -30,7 +30,7 @@ fi
 # Validate --agents before touching anything.
 if [ -n "$AGENTS" ]; then
   for t in $(echo "$AGENTS" | tr ',' ' '); do
-    case "$t" in api-spec|api-impl|kafka|database|migration) ;; *) echo "unknown agents type: $t" >&2; exit 1 ;; esac
+    case "$t" in api-spec|api-impl|kafka|database) ;; *) echo "unknown agents type: $t" >&2; exit 1 ;; esac
   done
   if [ -e "$TARGET/AGENTS.md" ] && [ "$FORCE" != 1 ]; then
     echo "$TARGET/AGENTS.md exists; use --force to overwrite" >&2; exit 1
@@ -57,6 +57,5 @@ if [ -n "$AGENTS" ]; then
   for t in api-spec api-impl kafka database; do
     case ",$AGENTS," in *,"$t",*) cat "$SRC/templates/java-spring/AGENTS.$t.md" >> "$OUT" ;; esac
   done
-  case ",$AGENTS," in *,migration,*) cat "$SRC/templates/AGENTS.migration.md" >> "$OUT" ;; esac
   echo "Wrote $OUT (fill in the <!-- À COMPLÉTER --> markers)"
 fi

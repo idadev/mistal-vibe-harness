@@ -22,6 +22,12 @@ Instructions pour les agents de code (Mistral Vibe) travaillant dans ce dépôt.
 - Toute action sortante : push, MR, publication, appel à un service distant en écriture, déploiement.
 - Ne jamais écrire de secret (token, mot de passe, clé) dans le code, la configuration, les logs ou un commit.
 
+## Décisions d'architecture (ADR)
+- Les ADR sont dans `docs/adr/NNNN-titre-en-kebab-case.md`, numérotés séquentiellement. Lire les ADR existants avant de proposer un changement structurant.
+- Proposer un ADR (sans le rédiger de sa propre initiative) pour : changement de contrat d'API cassant, nouveau topic ou schéma de message, changement de modèle de données, nouvelle dépendance structurante, ou toute décision difficile à défaire.
+- Structure : statut, contexte, options envisagées, décision, conséquences, impact backend (API, Kafka, BDD, transverse), suivi. Gabarit : `templates/ADR.md` du harness.
+- Un ADR accepté ne se modifie pas : en créer un nouveau qui le remplace, et passer l'ancien au statut `remplacé par ADR-NNNN`.
+
 ## Outils Vibe disponibles
 - `/code-review` : revue du `git diff` local avant de proposer un commit.
 - `vibe --agent reviewer` : relecteur générique en lecture seule.

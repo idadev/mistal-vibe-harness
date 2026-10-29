@@ -2,7 +2,7 @@
 #   scripts/install.ps1 -Target <project> [-Link] [-Agents <types>] [-Force]   -> <project>\.vibe\
 #   scripts/install.ps1 -Global [-Link]                                        -> $env:VIBE_HOME or ~\.vibe
 # -Link creates symlinks (needs developer mode or admin on Windows).
-# -Agents composes <project>\AGENTS.md from templates\ (types: api-spec,api-impl,kafka,database,migration).
+# -Agents composes <project>\AGENTS.md from templates\ (types: api-spec,api-impl,kafka,database).
 # -Force overwrites an existing AGENTS.md.
 param([string]$Target, [switch]$Global, [switch]$Link, [string[]]$Agents, [switch]$Force)
 if ($Global -eq [bool]$Target) { throw "Specify exactly one of -Target <project> or -Global" }
@@ -14,7 +14,7 @@ if ($Global) {
 
 # Validate -Agents before touching anything.
 if ($Agents) {
-  $valid = 'api-spec','api-impl','kafka','database','migration'
+  $valid = 'api-spec','api-impl','kafka','database'
   $Agents = $Agents | ForEach-Object { $_ -split ',' } | Where-Object { $_ }
   foreach ($t in $Agents) { if ($valid -notcontains $t) { throw "Unknown agents type: $t" } }
   $agentsOut = Join-Path $Target "AGENTS.md"
@@ -39,7 +39,6 @@ if ($Agents) {
   $java = 'api-spec','api-impl','kafka','database'
   if ($Agents | Where-Object { $java -contains $_ }) { $parts += Join-Path $tpl "java-spring\AGENTS.spring-common.md" }
   foreach ($t in $java) { if ($Agents -contains $t) { $parts += Join-Path $tpl "java-spring\AGENTS.$t.md" } }
-  if ($Agents -contains 'migration') { $parts += Join-Path $tpl "AGENTS.migration.md" }
   $text = ($parts | ForEach-Object { [IO.File]::ReadAllText($_) }) -join ''
   [IO.File]::WriteAllText($agentsOut, $text, (New-Object Text.UTF8Encoding $false))
   Write-Host "Wrote $agentsOut (fill in the TODO markers)"

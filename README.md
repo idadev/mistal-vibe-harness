@@ -40,22 +40,24 @@ Vibe ne charge les skills d'un projet que depuis des dossiers de confiance.
 
 ```
 templates/AGENTS.base.md                    Socle : langue, Git, limites, définition de « terminé » (toujours inclus)
-templates/java-spring/AGENTS.spring-common.md   Java 25 / Spring Boot 4.x / Maven (inclus avec tout type ci-dessous sauf migration)
+templates/java-spring/AGENTS.spring-common.md   Java 25 / Spring Boot 4.x / Maven (inclus avec tout type ci-dessous)
 templates/java-spring/AGENTS.api-spec.md    api-spec  : composant API pure, contrat OpenAPI (contract-first)
 templates/java-spring/AGENTS.api-impl.md    api-impl  : implémentation d'une API à partir du contrat généré
 templates/java-spring/AGENTS.kafka.md       kafka     : consumer / producer Kafka
 templates/java-spring/AGENTS.database.md    database  : DDL/DML (Flyway) + entités JPA
-templates/AGENTS.migration.md               migration : chantier de migration Java / Spring Boot (se combine avec un autre type)
 ```
 
 ```powershell
 scripts/install.ps1 -Target C:\dev\my-api -Agents api-impl
-scripts/install.ps1 -Target C:\dev\my-consumer -Agents kafka,migration -Force
+scripts/install.ps1 -Target C:\dev\my-consumer -Agents kafka,database -Force
 ```
 ```sh
 scripts/install.sh /path/to/my-api --agents api-impl
-scripts/install.sh /path/to/my-consumer --agents kafka,migration --force
+scripts/install.sh /path/to/my-consumer --agents kafka,database --force
 ```
+
+`templates/ADR.md` est un gabarit d'ADR pour les fonctionnalités backend (contexte, options, décision, conséquences, impact API / Kafka / BDD / transverse, suivi).
+À copier dans `docs/adr/` du composant ; le socle `AGENTS.md` décrit quand en proposer un. Il n'est pas copié par les scripts.
 
 `--agents` s'ajoute à l'installation de `.vibe/` ; il refuse d'écraser un `AGENTS.md` existant sans `--force` / `-Force`, et n'est pas disponible avec `--global`.
 Les templates partent d'hypothèses par défaut (Maven, contract-first avec openapi-generator, Flyway, messages Kafka JSON avec schéma versionné),
