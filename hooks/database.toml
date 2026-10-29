@@ -1,0 +1,17 @@
+# Hooks du type de composant « database » (DDL / DML Flyway + entités).
+
+[[hooks]]
+name = "guard-migrations"
+type = "pre_tool"
+match = "re:(.*\\.)?(write_file|edit|search_replace)"
+command = "node ./.vibe/hooks/guard-migrations.mjs"
+strict = true
+description = "Refuse la modification d'une migration Flyway déjà présente dans la branche de base."
+
+[[hooks]]
+name = "guard-remote-db"
+type = "pre_tool"
+match = "re:.*(bash|shell|powershell|process_start).*"
+command = "node ./.vibe/hooks/guard-remote-db.mjs"
+strict = true
+description = "Refuse Flyway et les clients SQL vers une base dont l'hôte n'est pas explicitement local."

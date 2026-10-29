@@ -64,6 +64,41 @@ Les templates partent d'hypothèses par défaut (Maven, contract-first avec open
 rappelées en commentaire dans chaque section. Les marqueurs `<!-- À COMPLÉTER -->` indiquent ce qu'il faut renseigner par projet
 (nom du composant, version du contrat, topics, moteur de base de données, etc.).
 
+## Hooks Vibe
+
+`hooks/` contient des hooks [Vibe](https://docs.mistral.ai/vibe/code/cli/hooks) de type `pre_tool` (garde-fous qui refusent un appel d'outil avant la demande de permission).
+Vibe lit `<project>/.vibe/hooks.toml` (dossier de confiance uniquement) puis `~/.vibe/hooks.toml` ; les scripts sont en Node.js, sans dépendance, et reçoivent le JSON de l'appel sur stdin.
+
+```
+hooks/base.toml        Hooks communs (toujours installés avec --hooks)
+hooks/database.toml    Hooks du type database (ajoutés si --agents contient database)
+hooks/scripts/*.mjs    Scripts (copiés dans <project>/.vibe/hooks/)
+hooks/tests/           Tests : node hooks/tests/hooks.test.mjs
+```
+
+| Hook | Fragment | Rôle |
+|------|----------|------|
+| `guard-git` (strict) | base | Refuse le force-push, le push vers `develop`/`main`/`master` (ou depuis l'une d'elles sans refspec) et les commits sur ces branches. `VIBE_PROTECTED_BRANCHES=a,b` change la liste |
+| `guard-destructive` (strict) | base | Refuse `rm -rf` hors `target`/`node_modules`/`build`/`dist`/`out`, `git reset --hard`, `git clean -f`, `git checkout .` / `git restore .` |
+| `commit-format` | base | Impose `type() : description` pour les messages donnés avec `-m` (éditeur, `-F` et `$(...)` ne sont pas vérifiés) |
+| `no-secrets` | base | Refuse l'écriture de `.env`, de clés (`.pem`, `id_rsa`...) et d'identifiants en clair (heuristique : peut en rater ou signaler des exemples ; les tests sont exemptés) |
+| `guard-migrations` (strict) | database | Refuse la modification d'une migration Flyway déjà présente dans la branche de base (`$VIBE_BASE_REF`, sinon `origin/develop`, `develop`, `HEAD`) ; les nouvelles migrations et `R__*` restent modifiables |
+| `guard-remote-db` (strict) | database | Refuse Flyway et les clients SQL (`psql`, `mysql`...) dont l'hôte n'est pas explicitement local |
+
+```powershell
+scripts/install.ps1 -Target C:\dev\my-db -Agents database -Hooks
+```
+```sh
+scripts/install.sh /path/to/my-db --agents database --hooks
+```
+
+`--hooks` / `-Hooks` n'est pas disponible avec `--global`, et refuse d'écraser un `hooks.toml` existant sans `--force` / `-Force`.
+Nécessite Node.js sur la machine qui exécute Vibe. Un hook `strict` refuse l'appel si le script échoue (Node absent, par exemple).
+
+Limites : ce sont des garde-fous contre les erreurs de l'agent, pas une barrière de sécurité : une commande reformulée peut passer entre les regex.
+Les noms d'outils et leurs paramètres (`bash` / `command`, `write_file`, `edit` ancien `search_replace` / `file_path`) viennent de la documentation et du code source de Vibe ;
+les motifs `match` couvrent les variantes de nom connues, mais revérifiez avec un appel réel après une montée de version de Vibe.
+
 ## Installation manuelle
 
 Sans les scripts, copiez les dossiers vous-même. Vibe lit trois sous-dossiers d'un répertoire `.vibe` :

@@ -1,17 +1,19 @@
 #!/usr/bin/env sh
 # Usage:
-#   scripts/install.sh <target-project> [--link] [--agents <types>] [--force]  -> <target-project>/.vibe/
+#   scripts/install.sh <target-project> [--link] [--agents <types>] [--hooks] [--force]  -> <target-project>/.vibe/
 #   scripts/install.sh --global [--link]                                       -> ${VIBE_HOME:-~/.vibe}
 # --agents compose <target-project>/AGENTS.md from templates/ (types: api-spec,api-impl,kafka,database).
-# --force overwrites an existing AGENTS.md.
+# --hooks writes <target-project>/.vibe/hooks.toml (+ .vibe/hooks/*.mjs): base hooks, plus those of the --agents types (database).
+# --force overwrites an existing AGENTS.md / hooks.toml.
 set -eu
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
-TARGET=""; GLOBAL=0; MODE=""; AGENTS=""; FORCE=0
+TARGET=""; GLOBAL=0; MODE=""; AGENTS=""; FORCE=0; HOOKS=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --global) GLOBAL=1 ;;
     --link) MODE="--link" ;;
     --force) FORCE=1 ;;
+    --hooks) HOOKS=1 ;;
     --agents) shift; AGENTS="${1:?--agents needs a comma-separated list of types}" ;;
     -*) echo "unknown option: $1" >&2; exit 1 ;;
     *) TARGET="$1" ;;
@@ -21,9 +23,10 @@ done
 if [ "$GLOBAL" = 1 ]; then
   [ -z "$TARGET" ] || { echo "use either <target-project> or --global" >&2; exit 1; }
   [ -z "$AGENTS" ] || { echo "--agents needs a <target-project> (AGENTS.md lives at the project root)" >&2; exit 1; }
+  [ "$HOOKS" = 0 ] || { echo "--hooks needs a <target-project> (hooks.toml is project-level)" >&2; exit 1; }
   DEST_ROOT="${VIBE_HOME:-$HOME/.vibe}"
 else
-  [ -n "$TARGET" ] || { echo "usage: install.sh <target-project>|--global [--link] [--agents <types>] [--force]" >&2; exit 1; }
+  [ -n "$TARGET" ] || { echo "usage: install.sh <target-project>|--global [--link] [--agents <types>] [--hooks] [--force]" >&2; exit 1; }
   DEST_ROOT="$TARGET/.vibe"
 fi
 
@@ -35,6 +38,10 @@ if [ -n "$AGENTS" ]; then
   if [ -e "$TARGET/AGENTS.md" ] && [ "$FORCE" != 1 ]; then
     echo "$TARGET/AGENTS.md exists; use --force to overwrite" >&2; exit 1
   fi
+fi
+
+if [ "$HOOKS" = 1 ] && [ -e "$DEST_ROOT/hooks.toml" ] && [ "$FORCE" != 1 ]; then
+  echo "$DEST_ROOT/hooks.toml exists; use --force to overwrite" >&2; exit 1
 fi
 
 for d in skills agents prompts; do
@@ -58,4 +65,12 @@ if [ -n "$AGENTS" ]; then
     case ",$AGENTS," in *,"$t",*) cat "$SRC/templates/java-spring/AGENTS.$t.md" >> "$OUT" ;; esac
   done
   echo "Wrote $OUT (fill in the <!-- À COMPLÉTER --> markers)"
+fi
+
+if [ "$HOOKS" = 1 ]; then
+  mkdir -p "$DEST_ROOT/hooks"
+  cp "$SRC"/hooks/scripts/*.mjs "$DEST_ROOT/hooks/"
+  cat "$SRC/hooks/base.toml" > "$DEST_ROOT/hooks.toml"
+  case ",$AGENTS," in *,database,*) printf '\n' >> "$DEST_ROOT/hooks.toml"; cat "$SRC/hooks/database.toml" >> "$DEST_ROOT/hooks.toml" ;; esac
+  echo "Wrote $DEST_ROOT/hooks.toml (needs Node.js; project hooks only load in a trusted folder)"
 fi

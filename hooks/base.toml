@@ -1,0 +1,32 @@
+# Hooks communs. Les scripts sont installés dans .vibe/hooks/ ; les commandes sont relatives à la racine du projet.
+# Les noms d'outils shell varient selon la plateforme (bash, process_start, PowerShell) : le motif les couvre tous.
+
+[[hooks]]
+name = "guard-git"
+type = "pre_tool"
+match = "re:.*(bash|shell|powershell|process_start).*"
+command = "node ./.vibe/hooks/guard-git.mjs"
+strict = true
+description = "Refuse le force-push, le push vers develop/main/master et les commits sur ces branches."
+
+[[hooks]]
+name = "guard-destructive"
+type = "pre_tool"
+match = "re:.*(bash|shell|powershell|process_start).*"
+command = "node ./.vibe/hooks/guard-destructive.mjs"
+strict = true
+description = "Refuse rm -rf hors répertoires de build, git reset --hard, git clean -f et git checkout/restore ."
+
+[[hooks]]
+name = "commit-format"
+type = "pre_tool"
+match = "re:.*(bash|shell|powershell|process_start).*"
+command = "node ./.vibe/hooks/commit-format.mjs"
+description = "Impose le format de message de commit « type() : description »."
+
+[[hooks]]
+name = "no-secrets"
+type = "pre_tool"
+match = "re:(.*\\.)?(write_file|edit|search_replace)"
+command = "node ./.vibe/hooks/no-secrets.mjs"
+description = "Refuse l'écriture de fichiers de secrets et d'identifiants en clair."
